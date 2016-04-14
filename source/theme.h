@@ -20,16 +20,16 @@
 #define COLOR_PURPLE        RGB(0x66, 0x00, 0xFF)
 
 #define LOGO_TOP        true
-#define LOGO_TEXT_X     10
+#define LOGO_TEXT_X     50
 #define LOGO_TEXT_Y     SCREEN_HEIGHT - 10
 #define LOGO_COLOR_BG   COLOR_TRANSPARENT
-#define LOGO_COLOR_FONT COLOR_WHITE
+#define LOGO_COLOR_FONT COLOR_FBLUE
 
 #define ALT_PROGRESS // use alternative progress indicator if defined
 #define PRG_COLOR_BG   LOGO_COLOR_BG
 #define PRG_COLOR_FONT LOGO_COLOR_FONT
 #define PRG_START_X    20
-#define PRG_START_Y    10
+#define PRG_START_Y    210
 #define PRG_BARWIDTH   280 // must be multiple of 8
 
 #define STD_COLOR_BG   LOGO_COLOR_BG
