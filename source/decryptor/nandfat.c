@@ -381,7 +381,7 @@ u32 InjectHealthAndSafety(u32 param)
         return 1;
     
     Debug("Injecting H&S app...");
-    if (EncryptFileToNand("hs.enc", offset_app[0], size_app[0], ctrnand_info) != 0)
+    if (EncryptFileToNand("hs.enc", offset_app[0], size_hs, ctrnand_info) != 0)
         return 1;
     
     Debug("Fixing TMD...");
