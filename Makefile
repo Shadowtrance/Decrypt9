@@ -16,7 +16,7 @@ include $(DEVKITARM)/ds_rules
 # INCLUDES is a list of directories containing header files
 # SPECS is the directory containing the important build and link files
 #---------------------------------------------------------------------------------
-export TARGET	:=	Decrypt9WIP
+export TARGET	:=	Decrypt9UI
 BUILD		:=	build
 SOURCES		:=	source source/fatfs source/decryptor source/abstraction
 DATA		:=	data
@@ -25,7 +25,7 @@ INCLUDES	:=	source source/fatfs
 #---------------------------------------------------------------------------------
 # THEME: if set to anything, name of the themes file folder inside resources
 #---------------------------------------------------------------------------------
-THEME	:=	
+THEME	:=	/D9UI
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -161,7 +161,6 @@ release:
 	@-cp $(OUTPUT).nds $(RELEASE)
 	@-cp $(OUTPUT).3dsx $(RELEASE)/$(TARGET)
 	@-cp $(OUTPUT).smdh $(RELEASE)/$(TARGET)
-	@-cp $(CURDIR)/resources/d9logo.bin $(RELEASE)/d9logo.bin
 	@cp $(CURDIR)/scripts/*.py $(RELEASE)/scripts
 	@cp $(CURDIR)/README.md $(RELEASE)
 	@-[ ! -n "$(strip $(THEME))" ] || (mkdir $(RELEASE)/$(THEME) && cp $(CURDIR)/resources/$(THEME)/*.bin $(RELEASE)/$(THEME))

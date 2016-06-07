@@ -13,6 +13,10 @@
 #include "decryptor/selftest.h"
 #include "decryptor/xorpad.h"
 
+#ifdef USE_THEME
+#include "theme.h"
+#endif
+
 #define SUBMENU_START 6
 
 MenuInfo menu[] =
@@ -298,8 +302,12 @@ u32 InitializeD9()
     
     if (InitFS()) {
         Debug("Initializing SD card... success");
+        #ifdef USE_THEME
+        LoadThemeGfx(GFX_LOGO_B, false);
+        #else
         FileGetData("d9logo.bin", BOT_SCREEN0, 320 * 240 * 3, 0);
         memcpy(BOT_SCREEN1, BOT_SCREEN0, 320 * 240 * 3);
+        #endif
         SetupSector0x96Key0x11(); // Sector0x96 key - no effect on error level
         if (SetupTwlKey0x03() != 0) // TWL KeyX / KeyY
             errorlevel = 2;
