@@ -515,7 +515,7 @@ u32 BuildKeyDb(u32 param)
             AesKeyInfo* info;
             
             if (pass > 2) { // check special keys
-                AesKeyDesc* special = &(specialKeys[pass - 2]);
+                AesKeyDesc* special = &(specialKeys[pass - 3]);
                 if (special->slot >= 0x40)
                     break;
                 else if (special->slot != keyslot)
