@@ -18,7 +18,7 @@ include $(DEVKITARM)/ds_rules
 #---------------------------------------------------------------------------------
 export TARGET	:=	Decrypt9UI
 BUILD		:=	build
-SOURCES		:=	source source/fatfs source/decryptor source/abstraction
+SOURCES		:=	source source/fatfs source/decryptor source/gamecart source/abstraction
 DATA		:=	data
 INCLUDES	:=	source source/fatfs
 

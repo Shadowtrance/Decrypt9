@@ -17,7 +17,7 @@
 #include "theme.h"
 #endif
 
-#define SUBMENU_START 6
+#define SUBMENU_START 7
 
 MenuInfo menu[] =
 {
@@ -81,6 +81,15 @@ MenuInfo menu[] =
             { "SD Decryptor/Encryptor",       &CryptSdFiles,          0 },
             { "SD Decryptor (SysNAND dir)",   &DecryptSdFilesDirect,  0 },
             { "SD Decryptor (EmuNAND dir)",   &DecryptSdFilesDirect,  N_EMUNAND }
+        }
+    },
+    {
+        "Gamecart Dumper Options", 4,
+        {
+            { "Dump Cart (full)",             &DumpGameCart,          0 },
+            { "Dump Cart (slim)",             &DumpGameCart,          CD_TRIM },
+            { "Dump & Decrypt Cart (full)",   &DumpGameCart,          CD_DECRYPT },
+            { "Dump & Decrypt Cart (slim)",   &DumpGameCart,          CD_DECRYPT | CD_TRIM }
         }
     },
     {

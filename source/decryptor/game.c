@@ -2,6 +2,8 @@
 #include "draw.h"
 #include "hid.h"
 #include "platform.h"
+#include "gamecart/protocol.h"
+#include "gamecart/command_ctr.h"
 #include "decryptor/aes.h"
 #include "decryptor/sha.h"
 #include "decryptor/decryptor.h"
@@ -748,12 +750,13 @@ u32 CryptGameFiles(u32 param)
             if (getle64(buffer + 0x110) != 0) 
                 continue; // skip NAND backup NCSDs
             Debug("Processing NCSD \"%s\"", path + path_len);
+            NcsdHeader* ncsd = (NcsdHeader*) buffer;
             u32 p;
             u32 nc = (cxi_only) ? 1 : 8;
             for (p = 0; p < nc; p++) {
-                u64 seedId = (p) ? getle64(buffer + 0x108) : 0;
-                u32 offset = getle32(buffer + 0x120 + (p*0x8)) * 0x200;
-                u32 size = getle32(buffer + 0x124 + (p*0x8)) * 0x200;
+                u64 seedId = (p) ? ncsd->mediaId : 0;
+                u32 offset = ncsd->partitions[p].offset * 0x200;
+                u32 size = ncsd->partitions[p].size * 0x200;
                 if (size == 0) 
                     continue;
                 Debug("Partition %i (%s)", p, ncsd_partition_name[p]);
@@ -926,4 +929,153 @@ u32 DecryptSdFilesDirect(u32 param)
     }
     
     return (n_processed) ? 0 : 1;
+}
+
+u32 DumpGameCart(u32 param)
+{
+    NcsdHeader* ncsd = (NcsdHeader*) 0x20316000;
+    NcchHeader* ncch = (NcchHeader*) 0x20317000;
+    u8* buffer = BUFFER_ADDRESS;
+    char filename[64];
+    u64 cart_size = 0;
+    u64 data_size = 0;
+    u32 result = 0;
+    
+    
+    // check if cartridge inserted
+    if (REG_CARDCONF2 & 0x1) {
+        Debug("Cartridge was not detected");
+        return 1;
+    }
+    
+    // initialize cartridge
+    Cart_Init();
+    Debug("Detected cartridge id %08X...", Cart_GetID());
+    
+    // read cartridge NCCH header
+    CTR_CmdReadHeader(ncch);
+    if (memcmp(ncch->magic, "NCCH", 4) != 0) {
+        Debug("Error reading cart NCCH header");
+        return 1;
+    }
+
+    // secure init
+    u32 sec_keys[4];
+    Cart_Secure_Init((u32*) ncch, sec_keys);
+    
+    // read NCSD header
+    Cart_Dummy();
+    CTR_CmdReadData(0, 0x200, 0x1000 / 0x200, ncsd);
+    if (memcmp(ncsd->magic, "NCSD", 4) != 0) {
+        Debug("Error reading cart NCSD header");
+        return 1;
+    }
+    
+    // check NCSD partition table
+    cart_size = (u64) ncsd->size * 0x200;
+    for (u32 i = 0; i < 8; i++) {
+        NcchPartition* partition = ncsd->partitions + i;
+        // Debug("Partition #%u: %lu@%lu (%llu)", i, partition->size, partition->offset, cart_size);
+        if ((partition->offset == 0) && (partition->size == 0))
+            continue;
+        if (partition->offset < (data_size / 0x200)) {
+            Debug("Overlapping partitions in NCSD table");
+            return 1; // should never happen
+        }
+        data_size = (u64) (partition->offset + partition->size) * 0x200;
+    }
+    
+    // output some info
+    Debug("Product ID: %.16s", ncch->productCode);
+    Debug("Cartridge actual size: %lluMB", data_size / 0x100000);
+    Debug("Cartridge data size: %lluMB", cart_size / 0x100000);
+    if (data_size > cart_size) {
+        Debug("Data exceeds cartridge size");
+        return 1; // should never happen
+    } else if ((data_size < 0x4000) || (cart_size < 0x4000)) {
+        Debug("Bad cartridge size");
+        return 1; // should never happen
+    }
+    if (param & CD_TRIM) // use trimmed size
+        cart_size = data_size;
+    Debug("Cartridge dump size: %lluMB", cart_size / 0x100000);
+    if ((cart_size == 0x100000000) && (data_size < cart_size)) {
+        cart_size -= 0x200; // silently remove the last sector
+    } else if (cart_size > 0x100000000) { // should not happen
+        Debug("Error: Too big for the FAT32 file system");
+        if (!(param & CD_TRIM))
+            Debug("(maybe try dumping trimmed?)");
+        return 1;
+    }
+    
+    if (!DebugCheckFreeSpace(cart_size))
+        return 1;
+    
+    // create file, write first 0x4000 byte
+    Debug("");
+    snprintf(filename, 64, "%s/%.16s.3ds", GAME_DIR, ncch->productCode);
+    if (!DebugFileCreate(filename, true)) {
+        snprintf(filename, 64, "%.16s.3ds", ncch->productCode);
+        if (!DebugFileCreate(filename, true))
+            return 1;
+    }
+    memset(((u8*) ncsd) + 0x1200, 0xFF, 0x4000 - 0x1200);
+    if (!DebugFileWrite((void*) ncsd, 0x4000, 0))
+        return 1;
+    
+    Debug("Dumping cartridge %.16s (%lluMB)...", ncch->productCode, cart_size / 0x100000);
+    
+    // actually dump the cart
+    sha_init(SHA256_MODE);
+    u32 n_units = cart_size / 0x200;
+    for (u32 i = 0x4000 / 0x200; i < n_units; i += BUFFER_MAX_SIZE / 0x200) {
+        u32 read_units = min(BUFFER_MAX_SIZE / 0x200, (n_units - i));
+        ShowProgress(i, n_units);
+        Cart_Dummy();
+        Cart_Dummy();
+        CTR_CmdReadData(i, 0x200, read_units, buffer);
+        if (!DebugFileWrite(buffer, 0x200 * read_units, i * 0x200)) {
+            result = 1;
+            break;
+        }
+        sha_update(buffer, 0x200 * read_units);
+    }
+
+    ShowProgress(0, 0);
+    FileClose();
+    
+    // SHA file: only for untouched ROMs
+    if ((result == 0) && (!(param & CD_DECRYPT))) {
+        char hashname[64];
+        u8 shasum[32];
+        sha_get(shasum);
+        Debug("Cart dump SHA256: %08X...", getbe32(shasum));
+        snprintf(hashname, 64, "%s.sha", filename);
+        Debug("Store to %s: %s", hashname, (FileDumpData(hashname, shasum, 32) == 32) ? "ok" : "failed");
+    }
+    
+    // decrypt the ROM dump
+    if (param & CD_DECRYPT) {
+        Debug("");
+        Debug("Decrypting dump %s (%lluMB)...", filename, cart_size / 0x100000);
+        u32 p;
+        for (p = 0; p < 8; p++) {
+            u64 seedId = (p) ? ncsd->mediaId : 0;
+            u32 offset = ncsd->partitions[p].offset * 0x200;
+            u32 size = ncsd->partitions[p].size * 0x200;
+            if (size == 0) 
+                continue;
+            if (CryptNcch(filename, offset, size, seedId, NULL) == 1)
+                break;
+        }
+        if (p == 8) {
+            Debug("Decryption success!");
+        } else {
+            Debug("Decryption failed!");
+            result = 1;
+        }
+    }
+    
+    
+    return result;
 }

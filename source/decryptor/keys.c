@@ -233,7 +233,7 @@ u32 SetupCtrNandKeyY0x05(void) // setup the CTRNAND keyY 0x05
         0x62, 0x22, 0x5C, 0xFD, 0x6F, 0xAE, 0x9B, 0x0A, 0x85, 0xA5, 0xCE, 0x21, 0xAA, 0xB6, 0xC8, 0x4D
     };
     static const u32 offset_keyy0x05[2] = { 0x0EB014, 0x0EB24C }; // FIRM90 & FIRM81 offsets
-    static const u32 firm_sig_magic[2] = { 0x87B79D15, 0x79D0FB89 }; // FIRM90 & FIRM81 signature magic
+    static const u32 firm_sig_magic[2] = { 0x87B79D15, 0x79D0FB89 }; // FIRM90 & FIRM81 signature magic 
     
     // check if already loaded
     if (CheckKeySlot(0x05, 'Y') == 0) {
