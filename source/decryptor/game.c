@@ -1198,7 +1198,7 @@ u32 DumpGameCart(u32 param)
     
     // create file, write first 0x4000 byte
     Debug("");
-    snprintf(filename, 64, "%s/%.16s.3ds", GAME_DIR, ncch->productCode);
+    snprintf(filename, 64, "/%s/%.16s.3ds", GAME_DIR, ncch->productCode);
     if (!DebugFileCreate(filename, true)) {
         snprintf(filename, 64, "%.16s.3ds", ncch->productCode);
         if (!DebugFileCreate(filename, true))
