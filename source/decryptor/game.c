@@ -457,8 +457,8 @@ u32 CryptCia(const char* filename, u8* ncch_crypt, bool cia_encrypt, bool cxi_on
     size_tmd = section_size[3];
     size_content = section_size[4];
     
-    if (FileGetSize() != section_offset[5] + align(section_size[5], 64)) {
-        Debug("Probably not a CIA file");
+    if (FileGetSize() < section_offset[5] + align(section_size[5], 64)) {
+        Debug("Not a CIA or corrupt file");
         FileClose();
         return 1;
     }
