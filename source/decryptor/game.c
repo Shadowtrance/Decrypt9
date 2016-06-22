@@ -1198,11 +1198,13 @@ u32 DumpGameCart(u32 param)
     
     // create file, write first 0x4000 byte
     Debug("");
-    snprintf(filename, 64, "/%s/%.16s.3ds", GAME_DIR, ncch->productCode);
-    if (!DebugFileCreate(filename, true)) {
-        snprintf(filename, 64, "%.16s.3ds", ncch->productCode);
-        if (!DebugFileCreate(filename, true))
+    snprintf(filename, 64, "/%s/%.16s%s.3ds", GAME_DIR, ncch->productCode, (param & CD_DECRYPT) ? "-dec" : "");
+    if (!FileCreate(filename, true)) {
+        snprintf(filename, 64, "%.16s%s.3ds", ncch->productCode, (param & CD_DECRYPT) ? "-dec" : "");
+        if (!FileCreate(filename, true)) {
+            Debug("Could not create output file on SD");
             return 1;
+        }
     }
     memset(((u8*) ncsd) + 0x1200, 0xFF, 0x4000 - 0x1200);
     if (!DebugFileWrite((void*) ncsd, 0x4000, 0)) {
