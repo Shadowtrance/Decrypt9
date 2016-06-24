@@ -1249,3 +1249,48 @@ u32 DumpGameCart(u32 param)
     
     return result;
 }
+
+u32 DumpPrivateHeader(u32 param)
+{
+    (void) param;
+    NcchHeader* ncch = (NcchHeader*) 0x20317000;
+    u8 privateHeader[0x40];
+    char filename[64];
+    
+    
+    // check if cartridge inserted
+    if (REG_CARDCONF2 & 0x1) {
+        Debug("Cartridge was not detected");
+        return 1;
+    }
+    
+    // initialize cartridge
+    Cart_Init();
+    Debug("Cartridge ID: %08X", Cart_GetID());
+    
+    // read cartridge NCCH header
+    CTR_CmdReadHeader(ncch);
+    if (memcmp(ncch->magic, "NCCH", 4) != 0) {
+        Debug("Error reading cart NCCH header");
+        return 1;
+    }
+
+    // secure init
+    u32 sec_keys[4];
+    Cart_Secure_Init((u32*) ncch, sec_keys);
+    
+    // get private header
+    CTR_CmdReadUniqueID(privateHeader);
+    
+    // dump to file
+    snprintf(filename, 64, "/%s/%.16s-private.hdr", GAME_DIR, ncch->productCode);
+    if (FileDumpData(filename, privateHeader, 0x40) != 0x40) {
+        snprintf(filename, 64, "%.16s-private.hdr", ncch->productCode);
+        if (FileDumpData(filename, privateHeader, 0x40) != 0x40) {
+            Debug("Could not create output file on SD");
+            return 1;
+        }
+    }
+    
+    return 0;
+}

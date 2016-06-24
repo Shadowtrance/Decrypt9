@@ -36,6 +36,12 @@ void CTR_CmdReadHeader(void* buffer)
     CTR_SendCommand(readheader_cmd, 0x200, 1, 0x704802C, buffer);
 }
 
+void CTR_CmdReadUniqueID(void* buffer)
+{
+    static const u32 readheader_cmd[4] = { 0xC6000000, 0x00000000, 0x00000000, 0x00000000 };
+    CTR_SendCommand(readheader_cmd, 0x40, 1, 0x903002C, buffer);
+}
+
 u32 CTR_CmdGetSecureId(u32 rand1, u32 rand2)
 {
     u32 id = 0;
