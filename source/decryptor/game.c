@@ -1254,7 +1254,8 @@ u32 DumpPrivateHeader(u32 param)
 {
     (void) param;
     NcchHeader* ncch = (NcchHeader*) 0x20317000;
-    u8 privateHeader[0x40];
+    u8 privateHeader[0x50] = { 0xFF };
+    u32 cartId = 0;
     char filename[64];
     
     
@@ -1266,7 +1267,12 @@ u32 DumpPrivateHeader(u32 param)
     
     // initialize cartridge
     Cart_Init();
-    Debug("Cartridge ID: %08X", Cart_GetID());
+    cartId = Cart_GetID();
+    Debug("Cartridge ID: %08X", cartId);
+    *(u32*) (privateHeader + 0x40) = cartId;
+    *(u32*) (privateHeader + 0x44) = 0x00000000;
+    *(u32*) (privateHeader + 0x48) = 0xFFFFFFFF;
+    *(u32*) (privateHeader + 0x4C) = 0xFFFFFFFF;
     
     // read cartridge NCCH header
     CTR_CmdReadHeader(ncch);
@@ -1274,19 +1280,21 @@ u32 DumpPrivateHeader(u32 param)
         Debug("Error reading cart NCCH header");
         return 1;
     }
-
+    
     // secure init
     u32 sec_keys[4];
     Cart_Secure_Init((u32*) ncch, sec_keys);
     
     // get private header
     CTR_CmdReadUniqueID(privateHeader);
+    Debug("Unique ID:");
+    Debug("%016llX%016llX", getbe64(privateHeader), getbe64(privateHeader + 0x08));
     
     // dump to file
-    snprintf(filename, 64, "/%s/%.16s-private.hdr", GAME_DIR, ncch->productCode);
-    if (FileDumpData(filename, privateHeader, 0x40) != 0x40) {
-        snprintf(filename, 64, "%.16s-private.hdr", ncch->productCode);
-        if (FileDumpData(filename, privateHeader, 0x40) != 0x40) {
+    snprintf(filename, 64, "/%s/%.16s-private.bin", GAME_DIR, ncch->productCode);
+    if (FileDumpData(filename, privateHeader, 0x50) != 0x50) {
+        snprintf(filename, 64, "%.16s-private.bin", ncch->productCode);
+        if (FileDumpData(filename, privateHeader, 0x50) != 0x50) {
             Debug("Could not create output file on SD");
             return 1;
         }
