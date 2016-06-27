@@ -140,8 +140,8 @@ This is actually two categories in the main menu, but the functionality provided
   * __NCCH FIRMs Dump__: Use this to dump NATIVE_FIRM, SAFE_MODE_FIRM, TWL_FIRM and AGB_FIRM from your NAND. For N3DS FIRMs, the ARM9 section will be decrypted as well. This feature is at the moment only useful for research.
   * __FIRM ARM9 Decryptor__: Use this to decrypt the ARM9 section of N3DS FIRMs. This feature is at the moment only useful for research.
 
-### Game Decryptor Options
-This category includes all features that allow the decryption (and encryption) of external and internal game files. Game files are any files that contain games and other software. Typical game file extensions are .CIA, .3DS and .APP. Game files are directly processed - the encrypted versions are overwritten with the decrypted ones and vice versa, so keep backups. The standard work folder for game files is `/D9Game/`, but if that does not exist, game files are processed inside the `/Decrypt9/` work folder.
+### Content Decryptor Options
+This category includes all features that allow the decryption (and encryption) of external and internal content files. Content files are directly processed - the encrypted versions are overwritten with the decrypted ones and vice versa, so keep backups. The standard work folder for content files is `/D9Game/`, but if that does not exist, content files are processed inside the `/Decrypt9/` work folder.
 * __NCCH/NCSD Decryptor__: Use this to fully decrypt all NCCH / NCSD files in the folder. Files with .3DS and .APP extension are typically NCCH / NCSD files. A full decryption of a .3DS file is otherwise also known as _cryptofixing_. Important Note: Depending on you 3DS console type / FW version and the encryption in your NCCH/NCSD files you may need additional files key files (see 'Support files' above) and / or `seeddb.bin`.
 * __NCCH/NCSD Encryptor__: Use this to (re-)encrypt all NCCH / NCSD files in the folder using standard encryption (f.e. after decrypting them). Standard encryption can be processed on any 3DS, starting from the lowest firmware versions. On some hardware, .3DS files might need to be encrypted for compatibility.
 * __CIA Decryptor (shallow)__: Use this to decrypt, for all CIA files in the folder, the titlekey layer of CIA decryption. The internal NCCH encryption is left untouched.
@@ -153,6 +153,14 @@ This category includes all features that allow the decryption (and encryption) o
 * __SD Decryptor/Encryptor__: Use this to decrypt or encrypt 'SD files'. SD files are titles, extdata and databases found inside the `/Nintendo 3DS/<id0>/<id1>/` folder. For this feature to work, you need to manually copy the file(s) you want to process. Copy them with their full folder structure (that's everything _after_ `/Nintendo 3DS/<id0>/<id1>/`) to the work / game folder. This feature should by now only be useful to encrypt content, decryption is much easier handled by the two features below.
 * __SD Decryptor (SysNAND dir)__: An improved version of the feature above. This allows you to select content from '/Nintendo 3DS/' (more specifically from the subfolder belonging to SysNAND) to be directly copied to your work / game folder and then decrypted from there.
 * __SD Decryptor (EmuNAND dir)__: This has the same functionality as the feature above, but handles the content of the '/Nintendo 3DS/' subfolder belonging to the EmuNAND instead.
+
+### Gamecart Dumper Options
+This category includes all features handling dumping of content from external cartridges. Cartridge dumps are also known as .3ds files.
+* __Dump Cart (full)__: This feature dumps the full, unaltered data from the inserted cartridge. For 4GB cartridges, the last sector is silently discarded, because the FAT32 file system can't handle files equal or above 4GB.
+* __Dump Cart (trim)__: Same as the above feature, but discards the unused padding for smaller output and faster processing. Using this is recommended unless the padding is required for digital preservation purposes.
+* __Dump & Decrypt Cart (full)__: Same as 'Dump Cart (full)', but also decrypts the cartridge data on-the-fly. Decrypted cartridge data is required for emulators and recommended for CIA conversion. The recommended CIA conversion tool is [3dsconv](https://github.com/ihaveamac/3dsconv).
+* __Dump & Decrypt Cart (trim)__: Same as above, but discards the unused padding for smaller output and faster processing. This is recommended over the above feature.
+* __Dump Private Header__: Dumps the cartridge unique private header from the inserted cartridge.
 
 ### Maintenance Options
 This category includes special features which allow you to test and manage Decrypt9 internal functionality. 
