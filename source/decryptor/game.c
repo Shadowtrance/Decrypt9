@@ -976,7 +976,7 @@ static u32 DumpCartToFile(u32 offset, u32 size, u32 total, CryptBufferInfo* info
         offset += read_bytes;
     }
     
-    for (u32 i = 0; i < size; i += CART_CHUNK_SIZE) {
+    for (u64 i = 0; i < size; i += CART_CHUNK_SIZE) {
         u32 read_bytes = min(CART_CHUNK_SIZE, (size - i));
         if (total)
             ShowProgress(offset + i, total);
