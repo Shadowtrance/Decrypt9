@@ -28,46 +28,6 @@ INCLUDES	:=	include source source/fatfs
 THEME	:=	/D9UI
 
 #---------------------------------------------------------------------------------
-# options for code generation
-#---------------------------------------------------------------------------------
-ARCH	:=	-mthumb -mthumb-interwork -flto
-
-CFLAGS	:=	-g -Wall -O2 -flto\
-			-march=armv5te -mtune=arm946e-s -fomit-frame-pointer\
-			-ffast-math -std=c99\
-			$(ARCH)
-
-CFLAGS	+=	$(INCLUDE) -DEXEC_$(EXEC_METHOD) -DARM9 -D_GNU_SOURCE
-
-CFLAGS	+=	-DBUILD_NAME="\"$(TARGET) (`date +'%Y/%m/%d'`)\""
-
-ifneq ($(strip $(THEME)),)
-CFLAGS	+=	-DUSE_THEME=\"\/$(THEME)\"
-endif
-
-CXXFLAGS	:= $(CFLAGS) -fno-rtti -fno-exceptions
-
-ASFLAGS	:=	-g $(ARCH) -DEXEC_$(EXEC_METHOD)
-LDFLAGS	=	-nostartfiles -g $(ARCH) -Wl,-Map,$(TARGET).map
-
-ifeq ($(EXEC_METHOD),GATEWAY)
-	LDFLAGS += --specs=../gateway.specs
-else ifeq ($(EXEC_METHOD),BOOTSTRAP)
-	LDFLAGS += --specs=../bootstrap.specs
-endif
-
-LIBS	:=
-
-#---------------------------------------------------------------------------------
-# list of directories containing libraries, this must be the top level containing
-# include and lib
-#---------------------------------------------------------------------------------
-LIBDIRS	:=
-
-#---------------------------------------------------------------------------------
-# no real need to edit anything past this point unless you need to add additional
-# rules for different file extensions
-#---------------------------------------------------------------------------------
 ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
@@ -108,36 +68,37 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
-.PHONY: common clean all gateway bootstrap cakehax cakerop brahma release
+.PHONY: common clean all gateway firm binary cakehax cakerop brahma release
 
 #---------------------------------------------------------------------------------
-all: brahma
+all: binary
 
 common:
 	@[ -d $(OUTPUT_D) ] || mkdir -p $(OUTPUT_D)
 	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
-    
+
 submodules:
 	@-git submodule update --init --recursive
 
-gateway: common
-	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile EXEC_METHOD=GATEWAY
+binary: common
+	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
+
+firm: binary
+	@firmtool/firmtool build $(OUTPUT).firm -n 0x23F00000 -e 0 -D $(OUTPUT).bin -A 0x23F00000 -C NDMA -i
+
+gateway: binary
 	@cp resources/LauncherTemplate.dat $(OUTPUT_D)/Launcher.dat
 	@dd if=$(OUTPUT).bin of=$(OUTPUT_D)/Launcher.dat bs=1497296 seek=1 conv=notrunc
 
-bootstrap: common
-	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile EXEC_METHOD=BOOTSTRAP
-
-cakehax: submodules common
-	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile EXEC_METHOD=GATEWAY
+cakehax: submodules binary
 	@make dir_out=$(OUTPUT_D) name=$(TARGET).dat -C CakeHax bigpayload
 	@dd if=$(OUTPUT).bin of=$(OUTPUT).dat bs=512 seek=160
-    
+
 cakerop: cakehax
 	@make DATNAME=$(TARGET).dat DISPNAME=$(TARGET) GRAPHICS=../resources/CakesROP -C CakesROP
 	@mv CakesROP/CakesROP.nds $(OUTPUT_D)/$(TARGET).nds
 
-brahma: submodules bootstrap
+brahma: submodules binary
 	@[ -d BrahmaLoader/data ] || mkdir -p BrahmaLoader/data
 	@cp $(OUTPUT).bin BrahmaLoader/data/payload.bin
 	@cp resources/BrahmaAppInfo BrahmaLoader/resources/AppInfo
@@ -145,27 +106,30 @@ brahma: submodules bootstrap
 	@make --no-print-directory -C BrahmaLoader APP_TITLE=$(TARGET)
 	@mv BrahmaLoader/output/*.3dsx $(OUTPUT_D)
 	@mv BrahmaLoader/output/*.smdh $(OUTPUT_D)
-	
+
 release:
 	@rm -fr $(BUILD) $(OUTPUT_D) $(RELEASE)
-	@make --no-print-directory gateway
+	@make --no-print-directory binary
+	@-make --no-print-directory firm
+	@-make --no-print-directory gateway
 	@-make --no-print-directory cakerop
-	@rm -fr $(BUILD) $(OUTPUT).bin $(OUTPUT).elf $(CURDIR)/$(LOADER)/data
 	@-make --no-print-directory brahma
 	@[ -d $(RELEASE) ] || mkdir -p $(RELEASE)
 	@[ -d $(RELEASE)/$(TARGET) ] || mkdir -p $(RELEASE)/$(TARGET)
 	@[ -d $(RELEASE)/scripts ] || mkdir -p $(RELEASE)/scripts
-	@cp $(OUTPUT_D)/Launcher.dat $(RELEASE)
-	@-cp $(OUTPUT).bin $(RELEASE)
+	@-cp $(OUTPUT_D)/Launcher.dat $(RELEASE)
+	@cp $(OUTPUT).bin $(RELEASE)
+	@-cp $(OUTPUT).firm $(RELEASE)
 	@-cp $(OUTPUT).dat $(RELEASE)
 	@-cp $(OUTPUT).nds $(RELEASE)
 	@-cp $(OUTPUT).3dsx $(RELEASE)/$(TARGET)
 	@-cp $(OUTPUT).smdh $(RELEASE)/$(TARGET)
+	@-cp $(CURDIR)/resources/d9logo.bin $(RELEASE)/d9logo.bin
 	@cp $(CURDIR)/scripts/*.py $(RELEASE)/scripts
 	@cp $(CURDIR)/README.md $(RELEASE)
 	@-[ ! -n "$(strip $(THEME))" ] || (mkdir $(RELEASE)/$(THEME) && cp $(CURDIR)/resources/$(THEME)/*.bin $(RELEASE)/$(THEME))
 	@-7z a $(RELEASE)/$(TARGET)-`date +'%Y%m%d-%H%M%S'`.zip $(RELEASE)/*
-	
+
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
@@ -192,6 +156,13 @@ $(OUTPUT).elf	:	$(OFILES)
 	@$(OBJCOPY) --set-section-flags .bss=alloc,load,contents -O binary $< $@
 	@echo built ... $(notdir $@)
 
+#---------------------------------------------------------------------------------
+# you need a rule like this for each extension you use as binary data
+#---------------------------------------------------------------------------------
+%.hdr.o: %.hdr
+#---------------------------------------------------------------------------------
+	@echo $(notdir $<)
+	@$(bin2o)
 
 -include $(DEPENDS)
 
